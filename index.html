@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Aplicación de lista de tareas offline">
+  <meta name="theme-color" content="#4CAF50">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%234CAF50' width='192' height='192'/><text x='50%' y='50%' font-size='120' fill='white' text-anchor='middle' dy='.3em'>✓</text></svg>">
+  <title>Lista de Tareas</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      animation: moveBackground 20s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes moveBackground {
+      0% {
+        transform: translate(0, 0);
+      }
+      100% {
+        transform: translate(50px, 50px);
+      }
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 520px;
+      overflow: hidden;
+      animation: fadeIn 0.6s ease-out;
+      position: relative;
+      z-index: 1;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px 30px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1), transparent);
+      pointer-events: none;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 12px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .status {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      border-radius: 30px;
+      display: inline-block;
+      margin-top: 12px;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      position: relative;
+      z-index: 1;
+    }
+
+    .status.offline {
+      background: rgba(255, 107, 107, 0.3);
+      border-color: rgba(255, 107, 107, 0.5);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .input-section {
+      padding: 24px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .input-section input {
+      flex: 1;
+      padding: 14px 18px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 15px;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+      font-family: inherit;
+    }
+
+    .input-section input:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .input-section input::placeholder {
+      color: #b0b0b0;
+    }
+
+    .btn-add {
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.3s ease;
+      font-size: 15px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-add::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      transition: left 0.3s ease;
+    }
+
+    .btn-add:hover::before {
+      left: 100%;
+    }
+
+    .btn-add:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-add:active {
+      transform: translateY(0);
+    }
+
+    .tasks-list {
+      list-style: none;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 0;
+    }
+
+    .tasks-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .tasks-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .tasks-list::-webkit-scrollbar-thumb {
+      background: #d0d0d0;
+      border-radius: 3px;
+    }
+
+    .tasks-list::-webkit-scrollbar-thumb:hover {
+      background: #b0b0b0;
+    }
+
+    .task-item {
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all 0.3s ease;
+      border-bottom: 1px solid #f0f0f0;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .task-item:hover {
+      background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%);
+      transform: translateX(4px);
+    }
+
+    .task-item input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      accent-color: #667eea;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+    }
+
+    .task-item input[type="checkbox"]:hover {
+      transform: scale(1.1);
+    }
+
+    .task-text {
+      flex: 1;
+      font-size: 15px;
+      color: #333;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+
+    .task-item.completed .task-text {
+      text-decoration: line-through;
+      color: #b0b0b0;
+      font-weight: 400;
+    }
+
+    .btn-delete {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+    }
+
+    .btn-delete:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+    }
+
+    .btn-delete:active {
+      transform: scale(0.95);
+    }
+
+    .empty-message {
+      padding: 60px 30px;
+      text-align: center;
+      color: #b0b0b0;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .footer {
+      padding: 18px 24px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f5 100%);
+      text-align: center;
+      font-size: 13px;
+      color: #808080;
+      border-top: 1px solid #f0f0f0;
+      font-weight: 500;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      padding: 20px 24px;
+      background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, rgba(240, 147, 251, 0.05) 100%);
+      font-size: 13px;
+      border-bottom: 1px solid #f0f0f0;
+      gap: 15px;
+    }
+
+    .stat {
+      text-align: center;
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      background: white;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+
+    .stat:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .stat-label {
+      color: #808080;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .stat-number {
+      font-weight: 800;
+      font-size: 22px;
+      color: #667eea;
+    }
+
+    @media (max-width: 400px) {
+      .header h1 {
+        font-size: 28px;
+      }
+
+      .header {
+        padding: 30px 20px;
+      }
+
+      .container {
+        border-radius: 16px;
+      }
+
+      .input-section {
+        padding: 16px;
+        gap: 10px;
+      }
+
+      .stats {
+        padding: 16px;
+      }
+
+      .task-item {
+        padding: 14px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✓ Mi Lista de Tareas</h1>
+      <div class="status" id="status">En línea</div>
+    </div>
+
+    <div class="input-section">
+      <input 
+        type="text" 
+        id="taskInput" 
+        placeholder="Agregar nueva tarea..."
+        autocomplete="off"
+      >
+      <button class="btn-add" id="addBtn">Agregar</button>
+    </div>
+
+    <div class="stats" id="stats">
+      <div class="stat">
+        <div>Total</div>
+        <div class="stat-number" id="totalCount">0</div>
+      </div>
+      <div class="stat">
+        <div>Completadas</div>
+        <div class="stat-number" id="completedCount">0</div>
+      </div>
+      <div class="stat">
+        <div>Pendientes</div>
+        <div class="stat-number" id="pendingCount">0</div>
+      </div>
+    </div>
+
+    <ul class="tasks-list" id="tasksList">
+      <li class="empty-message">No hay tareas. ¡Agrega una nueva!</li>
+    </ul>
+
+    <div class="footer">
+      📱 Funciona sin conexión a internet
+    </div>
+  </div>
+
+  <script>
+    // Registrar Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then((registration) => {
+          console.log('Service Worker registrado:', registration);
+        })
+        .catch((error) => {
+          console.error('Error al registrar Service Worker:', error);
+        });
+    }
+
+    // Detectar estado online/offline
+    function updateOnlineStatus() {
+      const statusEl = document.getElementById('status');
+      if (navigator.onLine) {
+        statusEl.textContent = 'En línea';
+        statusEl.classList.remove('offline');
+      } else {
+        statusEl.textContent = 'Sin conexión (Offline)';
+        statusEl.classList.add('offline');
+      }
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+
+    // Variables
+    const taskInput = document.getElementById('taskInput');
+    const addBtn = document.getElementById('addBtn');
+    const tasksList = document.getElementById('tasksList');
+    const DB_NAME = 'TareasDB';
+    const STORE_NAME = 'tareas';
+
+    // Inicializar IndexedDB
+    let db;
+    const dbRequest = indexedDB.open(DB_NAME, 1);
+
+    dbRequest.onerror = () => {
+      console.error('Error al abrir IndexedDB');
+    };
+
+    dbRequest.onsuccess = (event) => {
+      db = event.target.result;
+      cargarTareas();
+    };
+
+    dbRequest.onupgradeneeded = (event) => {
+      db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('fecha', 'fecha', { unique: false });
+      }
+    };
+
+    // Cargar tareas del IndexedDB
+    function cargarTareas() {
+      if (!db) return;
+      
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const tareas = request.result;
+        renderizarTareas(tareas);
+        actualizarEstadisticas(tareas);
+      };
+    }
+
+    // Renderizar tareas en la UI
+    function renderizarTareas(tareas) {
+      tasksList.innerHTML = '';
+      
+      if (tareas.length === 0) {
+        tasksList.innerHTML = '<li class="empty-message">No hay tareas. ¡Agrega una nueva!</li>';
+        return;
+      }
+
+      tareas.forEach((tarea) => {
+        const li = document.createElement('li');
+        li.className = `task-item ${tarea.completada ? 'completed' : ''}`;
+        
+        li.innerHTML = `
+          <input 
+            type="checkbox" 
+            ${tarea.completada ? 'checked' : ''} 
+            onchange="actualizarTarea(${tarea.id}, this.checked)"
+          >
+          <span class="task-text">${escapeHtml(tarea.texto)}</span>
+          <button class="btn-delete" onclick="eliminarTarea(${tarea.id})">Eliminar</button>
+        `;
+        
+        tasksList.appendChild(li);
+      });
+    }
+
+    // Actualizar estadísticas
+    function actualizarEstadisticas(tareas) {
+      const total = tareas.length;
+      const completadas = tareas.filter(t => t.completada).length;
+      const pendientes = total - completadas;
+
+      document.getElementById('totalCount').textContent = total;
+      document.getElementById('completedCount').textContent = completadas;
+      document.getElementById('pendingCount').textContent = pendientes;
+    }
+
+    // Agregar tarea
+    function agregarTarea() {
+      const texto = taskInput.value.trim();
+      
+      if (texto === '') {
+        alert('Por favor escribe una tarea');
+        return;
+      }
+
+      const tarea = {
+        texto: texto,
+        completada: false,
+        fecha: new Date().toISOString()
+      };
+
+      if (!db) return;
+
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.add(tarea);
+
+      request.onsuccess = () => {
+        taskInput.value = '';
+        cargarTareas();
+      };
+    }
+
+    // Actualizar estado de tarea
+    function actualizarTarea(id, completada) {
+      if (!db) return;
+
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const getRequest = store.get(id);
+
+      getRequest.onsuccess = () => {
+        const tarea = getRequest.result;
+        tarea.completada = completada;
+        store.put(tarea);
+        cargarTareas();
+      };
+    }
+
+    // Eliminar tarea
+    function eliminarTarea(id) {
+      if (!confirm('¿Estás seguro de que quieres eliminar esta tarea?')) return;
+
+      if (!db) return;
+
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.delete(id);
+
+      request.onsuccess = () => {
+        cargarTareas();
+      };
+    }
+
+    // Escape HTML para prevenir XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Event listeners
+    addBtn.addEventListener('click', agregarTarea);
+    taskInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') agregarTarea();
+    });
+  </script>
+</body>
+</html>
